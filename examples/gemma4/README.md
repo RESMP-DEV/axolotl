@@ -38,7 +38,7 @@ This works for both the MoE and Dense model.
 
 ## Limitations
 
-- **Flash Attention**: FA2 (max head_dim=256) and FA4 (max head_dim=128) cannot support Gemma 4's `global_head_dim=512`. Use SDP or flex attention instead.
+- **Flash Attention**: FA2 and FA3 both max out at `head_dim=256`, and FA4 maxes out at `head_dim=128`, so none of the Flash Attention variants support Gemma 4's `global_head_dim=512`. Use SDP or flex attention instead.
 - **LoRA kernels**: Not supported due to KV-sharing layers.
 - **lora_target_linear**: Incompatible for multimodal models — use `lora_target_modules` with a regex to restrict LoRA to the text backbone.
 

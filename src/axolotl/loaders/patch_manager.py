@@ -97,7 +97,7 @@ class PatchManager:
         self._deactivate_hf_async_load()
         self._apply_torchao_patches()
         self._apply_transformers_patches()
-        # self._apply_flex_attention_patches()
+        self._apply_flex_attention_patches()
         self._apply_flash_attention_patches()
         self._apply_chunked_cross_entropy_patch()
         self._apply_sageattn_patches()
@@ -232,9 +232,11 @@ class PatchManager:
         """Apply patches for flexible attention."""
         if self.cfg.flex_attention:
             from axolotl.monkeypatch.attention.flex_attn import (
+                patch_flex_large_head_dim,
                 patch_flex_wrapper,
             )
 
+            patch_flex_large_head_dim()
             flex_attn_compile_kwargs = self.cfg.flex_attn_compile_kwargs or {}
             patch_flex_wrapper(**flex_attn_compile_kwargs)
 

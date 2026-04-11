@@ -546,6 +546,17 @@ class ModelLoader:
             if self.cfg.model_quantization_config_kwargs:
                 mxfp4_kwargs = self.cfg.model_quantization_config_kwargs
             self.model_kwargs["quantization_config"] = Mxfp4Config(**mxfp4_kwargs)
+        elif self.cfg.model_quantization_config == "HqqConfig":
+            from transformers import HqqConfig
+
+            hqq_kwargs: dict[str, Any] = {"nbits": 4, "group_size": 64}
+            if self.cfg.model_quantization_config_kwargs:
+                hqq_kwargs.update(self.cfg.model_quantization_config_kwargs)
+            self.model_kwargs["quantization_config"] = HqqConfig(**hqq_kwargs)
+            LOG.info(
+                f"Using HQQ {hqq_kwargs.get('nbits', 4)}-bit quantization "
+                f"(group_size={hqq_kwargs.get('group_size', 64)})"
+            )
 
         if self.cfg.gptq:
             if not hasattr(self.model_config, "quantization_config"):

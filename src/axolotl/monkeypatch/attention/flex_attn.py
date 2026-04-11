@@ -5,11 +5,50 @@ import sys
 import torch
 import transformers
 from packaging import version
-from transformers.utils.import_utils import _torch_version, is_torch_less_or_equal
 
 from axolotl.utils.logging import get_logger
 
 LOG = get_logger(__name__)
+
+
+def patch_flex_large_head_dim():
+    """Patch Triton autotuning configs for models with head_dim > 256 (e.g. Gemma4's 512).
+
+    The default Inductor configs for head_dim > 256 use num_stages=3 which exceeds
+    H100 shared memory (232KB). We reduce num_stages to fit within the hardware limit.
+    """
+    try:
+        from torch._inductor.template_heuristics import (
+            CUDAConfigHeuristic,
+            FlexConfig,
+        )
+    except ImportError:
+        LOG.warning(
+            "Could not import CUDAConfigHeuristic; skipping large head_dim patch")
+        return
+
+    _orig_fwd = CUDAConfigHeuristic.get_flex_attn_fwd_configs
+    _orig_bwd = CUDAConfigHeuristic.get_flex_attn_bwd_configs
+
+    def _patched_fwd(self, head_dim: int, dtype):
+        if head_dim > 256:
+            configs = []
+            if dtype == torch.float32:
+                configs.append(FlexConfig(32, 16, 1, 4))
+            else:
+                configs.append(FlexConfig(64, 32, 1, 4))
+                configs.append(FlexConfig(32, 32, 2, 4))
+            return configs
+        return _orig_fwd(self, head_dim, dtype)
+
+    def _patched_bwd(self, head_dim: int, dtype):
+        if head_dim > 256:
+            return [FlexConfig(16, 16, 1, 4)]
+        return _orig_bwd(self, head_dim, dtype)
+
+    CUDAConfigHeuristic.get_flex_attn_fwd_configs = _patched_fwd
+    CUDAConfigHeuristic.get_flex_attn_bwd_configs = _patched_bwd
+    LOG.info("Patched flex attention Triton configs for head_dim > 256")
 
 
 def patch_flex_wrapper(**flex_attn_compile_kwargs):
@@ -18,6 +57,8 @@ def patch_flex_wrapper(**flex_attn_compile_kwargs):
 
     if not is_torch_2_6:
         return
+
+    from transformers.utils.import_utils import _torch_version, is_torch_less_or_equal
 
     from torch.nn.attention.flex_attention import flex_attention
 

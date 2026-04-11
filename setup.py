@@ -210,6 +210,15 @@ extras_require = {
         "opentelemetry-exporter-prometheus",
         "prometheus-client",
     ],
+    # Hopper-optimized research toolchain (H100/H200):
+    #   uv pip install -e ".[hopper]"
+    # FlashAttention3 must be built from source on Hopper (see AGENTS.md).
+    # This group provides everything else you need for Ax/BoTorch HP sweeps.
+    "hopper": [
+        "ax-platform>=1.2.0",
+        "botorch>=0.16.0",
+        "ninja",
+    ],
 }
 install_requires, dependency_links, extras_require_build = parse_requirements(
     extras_require

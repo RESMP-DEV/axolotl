@@ -1,0 +1,84 @@
+base_model: google/gemma-4-31B-it
+
+# Required: freeze vision/audio towers for text-only LoRA
+freeze_mm_modules: true
+chat_template: gemma4
+
+# Memory optimization plugins
+plugins:
+  - axolotl.integrations.liger.LigerPlugin
+  - axolotl.integrations.cut_cross_entropy.CutCrossEntropyPlugin
+cut_cross_entropy: true
+liger_rope: true
+liger_rms_norm: true
+liger_layer_norm: true
+liger_glu_activation: true
+liger_rms_norm_gated: true
+
+# BnB NF4 QLoRA: ~15.6 GB for 31B at 4-bit — effectively the same VRAM as HQQ.
+# HQQ is now available through `model_quantization_config: HqqConfig`, but this
+# recipe keeps BnB NF4 because it is the more battle-tested path for this run.
+# Optional HQQ alternative:
+# model_quantization_config: HqqConfig
+# model_quantization_config_kwargs: {nbits: 4, group_size: 64}
+# nbits=3 is unnecessary here: the budget is only ~26 GB out of 80 GB even at
+# nbits=4 / group_size=64.
+
+# Flex attention: handles Gemma4's 512 global_head_dim natively.
+# Compiles its own kernel — do NOT combine with torch_compile: true.
+flex_attention: true
+torch_compile: false
+
+shuffle_merged_datasets: true
+datasets:
+  - path: EVA-UNIT-01/Musica
+    type: chat_template
+    field_messages: conversations
+    message_property_mappings:
+      role: from
+      content: value
+
+dataset_prepared_path: ./last_run_prepared_vram
+val_set_size: 0
+output_dir: ./outputs/v1-vram
+load_in_4bit: true
+adapter: qlora
+save_safetensors: true
+
+sequence_len: 6144
+sample_packing: true
+pad_to_sequence_len: true
+
+# Best params from sweep trial 0
+lora_r: 128
+lora_alpha: 128
+lora_dropout: 0.026
+lora_target_modules: 'model.language_model.layers.[\d]+.(mlp|self_attn).(up|down|gate|q|k|v|o)_proj'
+lora_mlp_kernel: false
+lora_qkv_kernel: false
+lora_o_kernel: false
+
+gradient_accumulation_steps: 8
+micro_batch_size: 1
+num_epochs: 2
+optimizer: adamw_torch_fused
+lr_scheduler: constant
+learning_rate: 3.88e-6
+warmup_ratio: 0.058
+max_grad_norm: 0.87
+
+bf16: auto
+
+# BnB NF4 4-bit (~15.5 GB base model) + LoRA fits easily in 80 GB H100.
+# No ZeRO-3 or FSDP needed — gradient checkpointing works cleanly with frozen 4-bit base.
+gradient_checkpointing: true
+
+auto_resume_from_checkpoints: true
+logging_steps: 1
+
+# Comet ML tracking
+comet_project_name: gemma4-musica
+
+evals_per_epoch: 0
+saves_per_epoch: 4
+save_total_limit: 4

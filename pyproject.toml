@@ -69,3 +69,24 @@ markers = [
 
 [tool.uv.extra-build-dependencies]
 axolotl = ["huggingface_hub"]
+
+# ── uv-first configuration ──────────────────────────────────────────────────────
+# Best practices for using uv with this repo:
+#   1. Create venv:    uv venv .venv
+#   2. Install torch:  uv pip install torch==2.8.0+cu128 --index-url https://download.pytorch.org/whl/cu128
+#   3. Install axolotl: uv pip install -e ".[hopper,flash-attn,deepspeed]"
+#   4. Build FA3 from source (Hopper only, see AGENTS.md "H100 Footguns" section)
+#
+# Note: uv handles dependency resolution much faster than pip and respects
+# the extras defined in setup.py.  The "hopper" extra includes ax-platform,
+# botorch, and ninja for hyperparameter sweeps on H100/H200 GPUs.
+
+[tool.uv.sources]
+# Force PyTorch from the CUDA wheel index (not PyPI).
+# Uncomment and adjust the CUDA version if needed:
+# torch = { index = "pytorch-cu128" }
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
