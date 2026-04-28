@@ -87,13 +87,9 @@ class ModelInputConfig(BaseModel):
         json_schema_extra={"description": "Use custom kernels, e.g. MegaBlocks."},
     )
 
-    model_quantization_config: Literal[
-        "Mxfp4Config", "HqqConfig", "FineGrainedFP8Config"
-    ] | None = Field(
+    model_quantization_config: Literal["Mxfp4Config"] | None = Field(
         default=None,
-        json_schema_extra={
-            "description": "Model loading quantization config. HqqConfig requires the hqq package (`uv pip install hqq`). Default HqqConfig kwargs: nbits=4, group_size=64."
-        },
+        json_schema_extra={"description": "Model loading quantization config"},
     )
     model_quantization_config_kwargs: dict[str, Any] | None = Field(
         default=None,

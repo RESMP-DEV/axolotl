@@ -3,7 +3,7 @@
 from unittest.mock import MagicMock
 
 import pytest
-from transformers import BitsAndBytesConfig, HqqConfig, PreTrainedTokenizerBase
+from transformers import BitsAndBytesConfig, PreTrainedTokenizerBase
 from transformers.integrations.deepspeed import is_deepspeed_zero3_enabled
 from transformers.utils.import_utils import is_torch_mps_available
 
@@ -101,25 +101,6 @@ class TestModelsUtils:
                 self.model_loader.model_kwargs["quantization_config"]._load_in_8bit
                 is True
             )
-
-    def test_set_quantization_config_hqq(self):
-        self.cfg.load_in_8bit = False
-        self.cfg.load_in_4bit = False
-        self.cfg.gptq = False
-        self.cfg.adapter = None
-        self.cfg.model_quantization_config = "HqqConfig"
-        self.cfg.model_quantization_config_kwargs = {
-            "nbits": 3,
-            "group_size": 128,
-        }
-
-        self.model_loader._set_quantization_config()
-
-        quant_config = self.model_loader.model_kwargs.get("quantization_config")
-        assert isinstance(quant_config, HqqConfig)
-        weight_quant_params = quant_config.quant_config["weight_quant_params"]
-        assert weight_quant_params["nbits"] == 3
-        assert weight_quant_params["group_size"] == 128
 
     def test_message_property_mapping(self):
         """Test message property mapping configuration validation"""

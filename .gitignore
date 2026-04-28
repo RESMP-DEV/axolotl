@@ -1,12 +1,9 @@
 **/axolotl.egg-info
 configs
 last_run_prepared/
-last_run_prepared_*/
 outputs
-prepared_dataset/
 .vscode
 _site/
-CLAUDE.md
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
